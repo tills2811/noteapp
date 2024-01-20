@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { Button } from "./ui/button";
@@ -21,6 +21,14 @@ type Props = {};
 const CreateNoteDialog = (props: Props) => {
   const router = useRouter();
   const [input, setInput] = React.useState("");
+  const uploadToFirebase = useMutation({
+    mutationFn: async (noteId: string) => {
+      const response = await axios.post("/api/uploadToFirebase", {
+        noteId,
+      });
+      return response.data;
+    },
+  });
 
   const createNotebook = useMutation({
     mutationFn: async () => {
@@ -42,6 +50,8 @@ const CreateNoteDialog = (props: Props) => {
     createNotebook.mutate(undefined, {
       onSuccess: ({ note_id }) => {
         console.log(`created a new note: ${note_id}`);
+        // hit another endpoint to upload the temp dalle url to permannt firebase url.
+        uploadToFirebase.mutate(note_id);
         router.push(`/notebook/${note_id}`);
       },
       onError: (error) => {
@@ -79,7 +89,14 @@ const CreateNoteDialog = (props: Props) => {
             <Button type="reset" variant={"secondary"}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-green-600">
+            <Button
+              type="submit"
+              className="bg-green-600"
+              disabled={createNotebook.isPending}
+            >
+              {createNotebook.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Create
             </Button>
           </div>
